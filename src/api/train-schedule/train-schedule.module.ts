@@ -10,5 +10,6 @@ import { Employee } from "src/common/database/enity";
 	imports: [TypeOrmModule.forFeature([TrainSchedule, TrainScheduleStaff, Employee])],
 	controllers: [TrainScheduleController],
 	providers: [TrainScheduleService],
+	exports: [TrainScheduleService],
 })
 export class TrainScheduleModule {}

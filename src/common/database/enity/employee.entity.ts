@@ -1,6 +1,7 @@
 import { Column, Entity, OneToMany } from "typeorm";
 import { BaseEntity } from "../BaseEntity";
 import { FaceLog } from "./face-log.entity";
+import { TrainScheduleStaff } from "./train-schedule-staff.entity";
 
 @Entity("employees")
 export class Employee extends BaseEntity {
@@ -27,4 +28,7 @@ export class Employee extends BaseEntity {
 
 	@OneToMany(() => FaceLog, (faceLog) => faceLog.employee)
 	public faceLogs!: FaceLog[];
+
+	@OneToMany(() => TrainScheduleStaff, (scheduleStaff) => scheduleStaff.employee)
+	public scheduleStaff!: TrainScheduleStaff[];
 }

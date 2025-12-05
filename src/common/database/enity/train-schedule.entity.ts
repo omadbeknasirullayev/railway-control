@@ -5,33 +5,33 @@ import { TrainScheduleStaff } from "./train-schedule-staff.entity";
 
 @Entity("train-schedules")
 export class TrainSchedule extends BaseEntity {
-  @Column()
-  public trainNumber!: string;
+	@Column()
+	public trainNumber!: string;
 
-  @Column()
-  public departureStationId!: number;
+	@Column()
+	public departureStationId!: number;
 
-  @Column()
-  public arrivalStationId!: number;
+	@Column()
+	public arrivalStationId!: number;
 
-  @Column()
-  public departureTime!: string;
+	@Column()
+	public departureTime!: string;
 
-  @Column()
-  public arrivalTime!: string;
+	@Column({ nullable: true })
+	public arrivalTime!: string;
 
-  @Column()
-  public departureDate!: Date;
+	@Column({ nullable: true })
+	public departureDate!: string;
 
-  @Column()
-  public arrivalDate!: Date;
+	@Column({ nullable: true })
+	public arrivalDate!: string;
 
-  @ManyToOne(() => Station, (station) => station.trainSchedules)
-  public departureStation!: Station;
+	@ManyToOne(() => Station, (station) => station.trainSchedules)
+	public departureStation!: Station;
 
-  @ManyToOne(() => Station, (station) => station.trainSchedules)
-  public arrivalStation!: Station;
+	@ManyToOne(() => Station, (station) => station.trainSchedules)
+	public arrivalStation!: Station;
 
-  @OneToMany(() => TrainScheduleStaff, (staff) => staff.schedule)
-  public staff!: TrainScheduleStaff[];
+	@OneToMany(() => TrainScheduleStaff, (staff) => staff.schedule)
+	public staff!: TrainScheduleStaff[];
 }

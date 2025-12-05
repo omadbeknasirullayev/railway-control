@@ -5,9 +5,10 @@ import { FaceLogService } from "./face-log.service";
 import { FaceLogController } from "./face-log.controller";
 import { FaceLogGateway } from "./face-log.gateway";
 import { HikvisionListenerService } from "../hikvision/hikvision-listener.service";
+import { TrainScheduleModule } from "../train-schedule/train-schedule.module";
 
 @Module({
-	imports: [TypeOrmModule.forFeature([FaceLog, Employee, CameraDevice])],
+	imports: [TypeOrmModule.forFeature([FaceLog, Employee, CameraDevice]), TrainScheduleModule],
 	controllers: [FaceLogController],
 	providers: [FaceLogService, FaceLogGateway, HikvisionListenerService],
 	exports: [FaceLogGateway],

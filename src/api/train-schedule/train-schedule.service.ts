@@ -3,10 +3,13 @@ import { CreateTrainScheduleDto } from "./dto/create-train-schedule.dto";
 import { UpdateTrainScheduleDto } from "./dto/update-train-schedule.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Employee, TrainSchedule, TrainScheduleStaff } from "src/common/database/enity";
-import { In, Repository } from "typeorm";
+import { Between, In, IsNull, LessThan, Not, Repository } from "typeorm";
 import { errorPrompt } from "src/infrastructure/lib/prompts/errorPrompt";
 import { FilterDto } from "src/common/dto/filter.dto";
 import { BaseService } from "src/infrastructure/lib/baseService";
+import { DeportureArrivalStuffDto } from "./dto/deporture-arrival-stuff.dto";
+import moment from "moment";
+import { EmployeeAttendanceStatus } from "src/common/database/Enums";
 
 @Injectable()
 export class TrainScheduleService extends BaseService<
@@ -26,6 +29,9 @@ export class TrainScheduleService extends BaseService<
 	}
 
 	async create(dto: CreateTrainScheduleDto) {
+		dto.departureDate = moment(dto.departureDate).format("YYYY-MM-DD");
+		dto.arrivalDate = moment(dto.arrivalDate).format("YYYY-MM-DD");
+
 		const employee = await this.employeeRepo.find({
 			where: { id: In(dto.staff.map((staff) => staff.employeeId)) },
 		});
@@ -72,7 +78,15 @@ export class TrainScheduleService extends BaseService<
 				arrivalDate: true,
 				departureStation: { id: true, name: true },
 				arrivalStation: { id: true, name: true },
-				staff: { id: true, role: true, employee: { id: true, fullname: true } },
+				staff: {
+					id: true,
+					role: true,
+					arrivalStatus: true,
+					departureStatus: true,
+					arrivalTime: true,
+					departureTime: true,
+					employee: { id: true, fullname: true },
+				},
 			},
 		});
 	}
@@ -117,4 +131,73 @@ export class TrainScheduleService extends BaseService<
 		return this.repo.save(trainSchedule);
 	}
 
+	async deportureArrivalTime(dto: DeportureArrivalStuffDto) {
+		const targetDateTime = new Date(dto.date);
+		const oneHourBefore = new Date(targetDateTime.getTime() - 60 * 60 * 1000);
+		const oneHourAfter = new Date(targetDateTime.getTime() + 60 * 60 * 1000);
+
+		const [departureQuery, arrivalQuery] = await Promise.all([
+			this.employeeRepo
+				.createQueryBuilder("employee")
+				.leftJoinAndSelect("employee.scheduleStaff", "scheduleStaff")
+				.leftJoinAndSelect("scheduleStaff.schedule", "schedule")
+				.where("employee.id = :staffId", { staffId: dto.stuff })
+				.andWhere("schedule.departureStationId = :stationId", { stationId: dto.stationId })
+				.andWhere("schedule.isActive = true")
+				.andWhere("schedule.isDeleted = false")
+				.andWhere(
+					`CONCAT(schedule."departureDate", ' ', schedule."departureTime")::timestamp 
+     BETWEEN :startDateTime AND :endDateTime`,
+					{
+						startDateTime: oneHourBefore,
+						endDateTime: oneHourAfter,
+					},
+				)
+				.getOne(),
+
+			this.employeeRepo
+				.createQueryBuilder("employee")
+				.leftJoinAndSelect("employee.scheduleStaff", "scheduleStaff")
+				.leftJoinAndSelect("scheduleStaff.schedule", "schedule")
+				.where("employee.id = :staffId", { staffId: dto.stuff })
+				.andWhere("schedule.departureStationId = :stationId", { stationId: dto.stationId })
+				.andWhere("schedule.isActive = true")
+				.andWhere("schedule.isDeleted = false")
+				.andWhere(
+					`CONCAT(schedule."arrivalDate", ' ', schedule."arrivalTime")::timestamp 
+     BETWEEN :startDateTime AND :endDateTime`,
+					{
+						startDateTime: oneHourBefore,
+						endDateTime: oneHourAfter,
+					},
+				)
+				.getOne(),
+		]);
+
+		console.log(departureQuery, arrivalQuery);
+
+		if (!departureQuery && !arrivalQuery) {
+			return null;
+		}
+
+		if (
+			departureQuery &&
+			departureQuery?.scheduleStaff[0]?.departureStatus == EmployeeAttendanceStatus.EXPECTED
+		) {
+			departureQuery.scheduleStaff[0].departureTime = dto.date;
+			departureQuery.scheduleStaff[0].departureStatus = EmployeeAttendanceStatus.ARRIVED;
+			return await this.trainScheduleStaffRepo.save(departureQuery.scheduleStaff[0]);
+		}
+
+		if (
+			arrivalQuery &&
+			arrivalQuery?.scheduleStaff[0]?.arrivalStatus == EmployeeAttendanceStatus.EXPECTED
+		) {
+			arrivalQuery.scheduleStaff[0].arrivalTime = dto.date;
+			arrivalQuery.scheduleStaff[0].arrivalStatus = EmployeeAttendanceStatus.LEFT;
+			return await this.trainScheduleStaffRepo.save(arrivalQuery.scheduleStaff[0]);
+		}
+
+		return null;
+	}
 }

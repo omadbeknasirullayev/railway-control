@@ -37,11 +37,11 @@ export class CreateTrainScheduleDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  public departureDate!: Date;
+  public departureDate!: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  public arrivalDate!: Date;
+  public arrivalDate!: string;
 
   @ApiProperty({ type: [TrainScheduleStaffDto] })
   @IsNotEmpty()

@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CameraDevice, Employee, FaceLog } from "src/common/database/enity";
 import AxiosDigestAuth from "axios-digest";
+import { TrainScheduleService } from "../train-schedule/train-schedule.service";
 
 @Injectable()
 export class HikvisionListenerService implements OnModuleInit {
@@ -20,6 +21,8 @@ export class HikvisionListenerService implements OnModuleInit {
 		private readonly employeeRepo: Repository<Employee>,
 		@InjectRepository(CameraDevice)
 		private readonly cameraDeviceRepo: Repository<CameraDevice>,
+
+		private readonly trainScheduleService: TrainScheduleService,
 	) {
 		this.cameraUrl =
 			process.env.HIKVISION_CAMERA_URL ||
@@ -118,7 +121,6 @@ export class HikvisionListenerService implements OnModuleInit {
 										this.logger.warn(`Employee not found: ${employeeId}`);
 									}
 								}
-								console.log(employee, cameraDevice);
 
 								if (employee) {
 									const faceLog = this.faceLogRepo.create({
@@ -131,6 +133,12 @@ export class HikvisionListenerService implements OnModuleInit {
 									});
 
 									await this.faceLogRepo.save(faceLog);
+
+									this.trainScheduleService.deportureArrivalTime({
+										date: timestamp,
+										stuff: employee.id,
+										stationId: cameraDevice?.stationId!,
+									});
 									this.logger.log(
 										`[LOG] ${timestamp.toISOString()} | ${employee ? employee.fullname : "Nomalum"}`,
 									);
