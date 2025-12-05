@@ -5,14 +5,16 @@ import { CameraDevice, Employee, FaceLog } from "src/common/database/enity";
 import AxiosDigestAuth from "axios-digest";
 import { TrainScheduleService } from "../train-schedule/train-schedule.service";
 
+interface CameraListener {
+	cameraDevice: CameraDevice;
+	digestAuth: AxiosDigestAuth;
+	isListening: boolean;
+}
+
 @Injectable()
 export class HikvisionListenerService implements OnModuleInit {
 	private readonly logger = new Logger(HikvisionListenerService.name);
-	private readonly digestAuth: AxiosDigestAuth;
-	private readonly cameraUrl: string;
-	private readonly username: string;
-	private readonly password: string;
-	private isListening = false;
+	private cameraListeners: Map<number, CameraListener> = new Map();
 
 	constructor(
 		@InjectRepository(FaceLog)
@@ -23,30 +25,49 @@ export class HikvisionListenerService implements OnModuleInit {
 		private readonly cameraDeviceRepo: Repository<CameraDevice>,
 
 		private readonly trainScheduleService: TrainScheduleService,
-	) {
-		this.cameraUrl =
-			process.env.HIKVISION_CAMERA_URL ||
-			"http://192.168.14.14/ISAPI/Event/notification/alertStream";
-		this.username = process.env.HIKVISION_USERNAME || "admin";
-		this.password = process.env.HIKVISION_PASSWORD || "kengash153";
+	) {}
 
-		this.digestAuth = new AxiosDigestAuth("admin", "kengash153");
+	async onModuleInit() {
+		await this.startListeningToAllCameras();
 	}
 
-	onModuleInit() {
-		// Start listening when the module initializes
-		this.startListening();
+	private async startListeningToAllCameras() {
+		this.logger.log("Loading camera devices from database...");
+
+		const cameraDevices = await this.cameraDeviceRepo.find({ where: { isActive: true } });
+
+		if (cameraDevices.length === 0) {
+			this.logger.warn("No camera devices found in database!");
+			return;
+		}
+
+		this.logger.log(`Found ${cameraDevices.length} camera device(s). Starting listeners...`);
+
+		for (const cameraDevice of cameraDevices) {
+			const listener: CameraListener = {
+				cameraDevice,
+				digestAuth: new AxiosDigestAuth(cameraDevice.username, cameraDevice.password),
+				isListening: true,
+			};
+
+			this.cameraListeners.set(cameraDevice.id, listener);
+			this.startListeningToCamera(listener);
+		}
 	}
 
-	private async startListening() {
-		// this.isListening = true;
-		this.logger.log("Starting Hikvision camera listener...");
+	private async startListeningToCamera(listener: CameraListener) {
+		const { cameraDevice, digestAuth } = listener;
+		const cameraUrl = `http://${cameraDevice.ip}/ISAPI/Event/notification/alertStream`;
 
-		while (this.isListening) {
+		this.logger.log(
+			`Starting listener for camera: ${cameraDevice.ip} (Station: ${cameraDevice.stationId})`,
+		);
+
+		while (listener.isListening) {
 			try {
-				this.logger.log(`[*] Hikvision: Connecting to ${this.cameraUrl}`);
+				this.logger.log(`[*] Hikvision: Connecting to ${cameraUrl}`);
 
-				const response = await this.digestAuth.get(this.cameraUrl, {
+				const response = await digestAuth.get(cameraUrl, {
 					responseType: "stream",
 					timeout: 0,
 				});
@@ -125,10 +146,12 @@ export class HikvisionListenerService implements OnModuleInit {
 								if (employee) {
 									const faceLog = this.faceLogRepo.create({
 										employeeId: employee.id,
-										stationId: cameraDevice?.stationId,
+										stationId:
+											cameraDevice?.stationId ||
+											listener.cameraDevice.stationId,
 										status: employee ? "recognized" : "not_found",
 										fullname: acevent.name,
-										deviceIp: data?.ipAddress,
+										deviceIp: data?.ipAddress || listener.cameraDevice.ip,
 										operatedAt: timestamp,
 									});
 
@@ -137,10 +160,12 @@ export class HikvisionListenerService implements OnModuleInit {
 									this.trainScheduleService.deportureArrivalTime({
 										date: timestamp,
 										stuff: employee.id,
-										stationId: cameraDevice?.stationId!,
+										stationId:
+											cameraDevice?.stationId ||
+											listener.cameraDevice.stationId,
 									});
 									this.logger.log(
-										`[LOG] ${timestamp.toISOString()} | ${employee ? employee.fullname : "Nomalum"}`,
+										`[LOG] ${listener.cameraDevice.ip} | ${timestamp.toISOString()} | ${employee.fullname}`,
 									);
 								}
 							} catch (jsonError: any) {
@@ -153,11 +178,11 @@ export class HikvisionListenerService implements OnModuleInit {
 				});
 
 				response.data.on("error", (error: any) => {
-					this.logger.error(`[!] Stream error: ${error.message}`);
+					this.logger.error(`[!] ${cameraDevice.ip} - Stream error: ${error.message}`);
 				});
 
 				response.data.on("end", () => {
-					this.logger.warn("[!] Stream ended");
+					this.logger.warn(`[!] ${cameraDevice.ip} - Stream ended`);
 				});
 
 				// Wait for stream to finish
@@ -166,10 +191,12 @@ export class HikvisionListenerService implements OnModuleInit {
 					response.data.on("error", reject);
 				});
 			} catch (error: any) {
-				this.logger.error(`[!] Stream disconnected! Reason: ${error.message}`);
+				this.logger.error(
+					`[!] ${cameraDevice.ip} - Stream disconnected! Reason: ${error.message}`,
+				);
 			}
 
-			this.logger.log("[*] Reconnecting in 5 seconds...");
+			this.logger.log(`[*] ${cameraDevice.ip} - Reconnecting in 5 seconds...`);
 			await this.sleep(5000);
 		}
 	}
@@ -178,8 +205,45 @@ export class HikvisionListenerService implements OnModuleInit {
 		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
-	stopListening() {
-		this.isListening = false;
-		this.logger.log("Stopping Hikvision camera listener...");
+	stopListening(cameraId?: number) {
+		if (cameraId) {
+			const listener = this.cameraListeners.get(cameraId);
+			if (listener) {
+				listener.isListening = false;
+				this.cameraListeners.delete(cameraId);
+				this.logger.log(`Stopped listening to camera ID: ${cameraId}`);
+			}
+		} else {
+			// Stop all listeners
+			this.cameraListeners.forEach((listener) => {
+				listener.isListening = false;
+			});
+			this.cameraListeners.clear();
+			this.logger.log("Stopped all Hikvision camera listeners");
+		}
+	}
+
+	async addCameraListener(cameraId: number) {
+		const cameraDevice = await this.cameraDeviceRepo.findOne({ where: { id: cameraId } });
+
+		if (!cameraDevice) {
+			this.logger.warn(`Camera device with ID ${cameraId} not found`);
+			return;
+		}
+
+		if (this.cameraListeners.has(cameraId)) {
+			this.logger.warn(`Camera ${cameraDevice.ip} is already being listened to`);
+			return;
+		}
+
+		const listener: CameraListener = {
+			cameraDevice,
+			digestAuth: new AxiosDigestAuth(cameraDevice.username, cameraDevice.password),
+			isListening: true,
+		};
+
+		this.cameraListeners.set(cameraDevice.id, listener);
+		this.startListeningToCamera(listener);
+		this.logger.log(`Added listener for camera: ${cameraDevice.ip}`);
 	}
 }

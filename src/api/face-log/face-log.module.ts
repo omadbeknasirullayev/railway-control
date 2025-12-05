@@ -11,6 +11,6 @@ import { TrainScheduleModule } from "../train-schedule/train-schedule.module";
 	imports: [TypeOrmModule.forFeature([FaceLog, Employee, CameraDevice]), TrainScheduleModule],
 	controllers: [FaceLogController],
 	providers: [FaceLogService, FaceLogGateway, HikvisionListenerService],
-	exports: [FaceLogGateway],
+	exports: [FaceLogGateway, HikvisionListenerService],
 })
 export class FaceLogModule {}
