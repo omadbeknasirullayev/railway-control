@@ -24,7 +24,7 @@ import { FaceLogModule } from './face-log/face-log.module';
 		StationModule,
 		EmployeeModule,
 		TrainScheduleModule,
-		FaceLogModule,
+		// FaceLogModule,
 	],
 })
 export class AppModule implements NestModule {
