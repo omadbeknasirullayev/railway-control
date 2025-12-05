@@ -1,8 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import axios from "axios";
-import { Employee, FaceLog } from "src/common/database/enity";
+import { CameraDevice, Employee, FaceLog } from "src/common/database/enity";
 import AxiosDigestAuth from "axios-digest";
 
 @Injectable()
@@ -19,10 +18,12 @@ export class HikvisionListenerService implements OnModuleInit {
 		private readonly faceLogRepo: Repository<FaceLog>,
 		@InjectRepository(Employee)
 		private readonly employeeRepo: Repository<Employee>,
+		@InjectRepository(CameraDevice)
+		private readonly cameraDeviceRepo: Repository<CameraDevice>,
 	) {
 		this.cameraUrl =
 			process.env.HIKVISION_CAMERA_URL ||
-			"http://192.168.14.15/ISAPI/Event/notification/alertStream";
+			"http://192.168.14.14/ISAPI/Event/notification/alertStream";
 		this.username = process.env.HIKVISION_USERNAME || "admin";
 		this.password = process.env.HIKVISION_PASSWORD || "kengash153";
 
@@ -102,24 +103,31 @@ export class HikvisionListenerService implements OnModuleInit {
 								}
 
 								let employee: Employee | null = null;
+								let cameraDevice: CameraDevice | null = null;
 								if (employeeId) {
 									try {
-										employee = await this.employeeRepo.findOne({
-											where: { id: employeeId },
-										});
+										[employee, cameraDevice] = await Promise.all([
+											this.employeeRepo.findOne({
+												where: { id: employeeId },
+											}),
+											this.cameraDeviceRepo.findOne({
+												where: { ip: data?.ipAddress },
+											}),
+										]);
 									} catch (err) {
 										this.logger.warn(`Employee not found: ${employeeId}`);
 									}
 								}
+								console.log(employee, cameraDevice);
 
 								if (employee) {
 									const faceLog = this.faceLogRepo.create({
-										employee: employee || undefined,
+										employeeId: employee.id,
+										stationId: cameraDevice?.stationId,
 										status: employee ? "recognized" : "not_found",
-										employeeNoString: employeeId,
-										cardNo: acevent.cardNo,
+										fullname: acevent.name,
 										deviceIp: data?.ipAddress,
-										created_at: timestamp,
+										operatedAt: timestamp,
 									});
 
 									await this.faceLogRepo.save(faceLog);

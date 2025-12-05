@@ -2,18 +2,22 @@ import { Column, Entity, OneToMany } from "typeorm";
 import { BaseEntity } from "../BaseEntity";
 import { TrainSchedule } from "./train-schedule.entity";
 import { CameraDevice } from "./camera-device.entity";
+import { FaceLog } from "./face-log.entity";
 
 @Entity("stations")
 export class Station extends BaseEntity {
-  @Column({
-    type: "varchar",
-    nullable: false
-  })
-  public name!: string
+	@Column({
+		type: "varchar",
+		nullable: false,
+	})
+	public name!: string;
 
-  @OneToMany(() => TrainSchedule, (trainSchedule) => trainSchedule.departureStation)
-  public trainSchedules!: TrainSchedule[]
+	@OneToMany(() => TrainSchedule, (trainSchedule) => trainSchedule.departureStation)
+	public trainSchedules!: TrainSchedule[];
 
-  @OneToMany(() => CameraDevice, (cameraDevice) => cameraDevice.station)
-  public cameraDevices!: CameraDevice[]
+	@OneToMany(() => CameraDevice, (cameraDevice) => cameraDevice.station)
+	public cameraDevices!: CameraDevice[];
+
+	@OneToMany(() => FaceLog, (faceLog) => faceLog.station)
+	public faceLogs!: FaceLog[];
 }
