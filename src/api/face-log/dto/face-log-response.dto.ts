@@ -1,12 +1,12 @@
 import { FaceLogStatus } from "src/common/database/enity/face-log.entity";
 
 export class FaceLogResponseDto {
-	id: number;
+	id!: number;
 	employeeId?: string;
 	employeeName?: string;
 	cardNo?: string;
-	status: FaceLogStatus;
+	status!: FaceLogStatus;
 	eventTime?: Date;
-	createdAt: Date;
+	createdAt!: Date;
 	rawData?: any;
 }
