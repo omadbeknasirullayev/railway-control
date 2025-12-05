@@ -9,6 +9,8 @@ import { StationModule } from "./station/station.module";
 import { EmployeeModule } from './employee/employee.module';
 import { TrainScheduleModule } from './train-schedule/train-schedule.module';
 import { FaceLogModule } from './face-log/face-log.module';
+import { CameraDeviceModule } from './camera-device/camera-device.module';
+
 
 @Module({
 	imports: [
@@ -24,7 +26,8 @@ import { FaceLogModule } from './face-log/face-log.module';
 		StationModule,
 		EmployeeModule,
 		TrainScheduleModule,
-		// FaceLogModule,
+		FaceLogModule,
+		CameraDeviceModule,
 	],
 })
 export class AppModule implements NestModule {
