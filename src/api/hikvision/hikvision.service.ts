@@ -1,19 +1,30 @@
 import { Injectable, Logger } from "@nestjs/common";
-import AxiosDigestAuth from "axios-digest";
+import axios, { AxiosInstance } from "axios";
 import { Employee } from "src/common/database/enity";
 
 @Injectable()
 export class HikvisionService {
 	private readonly logger = new Logger(HikvisionService.name);
-	private readonly digestAuth: AxiosDigestAuth;
+	private readonly client: AxiosInstance;
 	private readonly baseUrls: string[];
+	private readonly username: string;
+	private readonly password: string;
 
 	constructor() {
 		this.baseUrls = process.env.HIKVISION_BASE_URLS?.split(",") || ["http://192.168.14.14"];
-		const username = process.env.HIKVISION_USERNAME || "admin";
-		const password = process.env.HIKVISION_PASSWORD || "kengash153";
+		this.username = process.env.HIKVISION_USERNAME || "admin";
+		this.password = process.env.HIKVISION_PASSWORD || "kengash153";
 
-		this.digestAuth = new AxiosDigestAuth(username, password);
+		this.client = axios.create({
+			auth: {
+				username: this.username,
+				password: this.password,
+			},
+			headers: {
+				"Content-Type": "application/json",
+			},
+			timeout: 10000,
+		});
 	}
 
 	async addUserToHikvision(employee: Employee): Promise<void> {
@@ -34,14 +45,9 @@ export class HikvisionService {
 
 			for (const baseUrl of this.baseUrls) {
 				try {
-					const response = await this.digestAuth.post(
+					const response = await this.client.post(
 						`${baseUrl}/ISAPI/AccessControl/UserInfo/Record?format=json`,
 						userBody,
-						{
-							headers: {
-								"Content-Type": "application/json",
-							},
-						},
 					);
 
 					if (response.status === 200 || response.status === 201) {
@@ -53,15 +59,12 @@ export class HikvisionService {
 					}
 				} catch (error: any) {
 					this.logger.error(`User creation error on ${baseUrl}: ${error.message}`);
-					if (error.response) {
-						this.logger.error(`Response status: ${error.response.status}, data: ${JSON.stringify(error.response.data)}`);
-					}
 				}
 			}
 
 			// Step 2: Upload face image if available
 			if (employee.image) {
-				await this.uploadFaceImage(employee);
+				// await this.uploadFaceImage(employee);
 			}
 		} catch (error: any) {
 			this.logger.error(`General Hikvision error for ${employee.fullname}: ${error.message}`);
@@ -82,14 +85,9 @@ export class HikvisionService {
 
 			for (const baseUrl of this.baseUrls) {
 				try {
-					const response = await this.digestAuth.post(
+					const response = await this.client.post(
 						`${baseUrl}/ISAPI/Intelligent/FDLib/FaceDataRecord?format=json`,
 						faceBody,
-						{
-							headers: {
-								"Content-Type": "application/json",
-							},
-						},
 					);
 
 					if (response.status === 200 || response.status === 201) {
@@ -101,9 +99,6 @@ export class HikvisionService {
 					}
 				} catch (error: any) {
 					this.logger.error(`Face upload error on ${baseUrl}: ${error.message}`);
-					if (error.response) {
-						this.logger.error(`Response status: ${error.response.status}, data: ${JSON.stringify(error.response.data)}`);
-					}
 				}
 			}
 		} catch (error: any) {
@@ -121,14 +116,9 @@ export class HikvisionService {
 
 			for (const baseUrl of this.baseUrls) {
 				try {
-					const response = await this.digestAuth.put(
+					const response = await this.client.put(
 						`${baseUrl}/ISAPI/AccessControl/UserInfo/Delete?format=json`,
 						deleteBody,
-						{
-							headers: {
-								"Content-Type": "application/json",
-							},
-						},
 					);
 
 					if (response.status === 200 || response.status === 201) {
@@ -140,9 +130,6 @@ export class HikvisionService {
 					}
 				} catch (error: any) {
 					this.logger.error(`User deletion error on ${baseUrl}: ${error.message}`);
-					if (error.response) {
-						this.logger.error(`Response status: ${error.response.status}, data: ${JSON.stringify(error.response.data)}`);
-					}
 				}
 			}
 
