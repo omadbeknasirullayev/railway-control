@@ -13,6 +13,7 @@ import { TrainScheduleService } from "./train-schedule.service";
 import { CreateTrainScheduleDto } from "./dto/create-train-schedule.dto";
 import { UpdateTrainScheduleDto } from "./dto/update-train-schedule.dto";
 import { FilterDto } from "src/common/dto/filter.dto";
+import { TrainShceduleStaffUpdateDto } from "./dto/train-shcedule-staff-update.dto";
 
 @Controller("train-schedule")
 export class TrainScheduleController {
@@ -26,6 +27,11 @@ export class TrainScheduleController {
 	@Get()
 	findAll(@Query() query: FilterDto) {
 		return this.trainScheduleService.findAllPagination(query);
+	}
+
+	@Get("absent-staff-schedule")
+	absentStaffSchedule() {
+		return this.trainScheduleService.getAbsentStaffSchedule();
 	}
 
 	@Get(":id")
@@ -48,4 +54,13 @@ export class TrainScheduleController {
 	remove(@Param("id", ParseIntPipe) id: number) {
 		return this.trainScheduleService.delete(id);
 	}
+
+	@Patch("staff/:staffId")
+	staffUpdate(
+		@Param("staffId", ParseIntPipe) staffId: number,
+		@Body() dto: TrainShceduleStaffUpdateDto,
+	) {
+		return this.trainScheduleService.staffSchaduleUpdate(staffId, dto);
+	}
+
 }

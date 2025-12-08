@@ -10,6 +10,8 @@ import { BaseService } from "src/infrastructure/lib/baseService";
 import { DeportureArrivalStuffDto } from "./dto/deporture-arrival-stuff.dto";
 import moment from "moment";
 import { EmployeeAttendanceStatus } from "src/common/database/Enums";
+import { TrainShceduleStaffUpdateDto } from "./dto/train-shcedule-staff-update.dto";
+import { Cron } from "@nestjs/schedule";
 
 @Injectable()
 export class TrainScheduleService extends BaseService<
@@ -184,7 +186,11 @@ export class TrainScheduleService extends BaseService<
 			departureQuery &&
 			departureQuery?.scheduleStaff[0]?.departureStatus == EmployeeAttendanceStatus.EXPECTED
 		) {
-			const departureTime = new Date(departureQuery.scheduleStaff[0].schedule.departureDate + ' ' + departureQuery.scheduleStaff[0].schedule.departureTime);
+			const departureTime = new Date(
+				departureQuery.scheduleStaff[0].schedule.departureDate +
+					" " +
+					departureQuery.scheduleStaff[0].schedule.departureTime,
+			);
 			if (departureTime > dto.date) {
 				departureQuery.scheduleStaff[0].departureStatus = EmployeeAttendanceStatus.ARRIVED;
 			} else {
@@ -198,7 +204,11 @@ export class TrainScheduleService extends BaseService<
 			arrivalQuery &&
 			arrivalQuery?.scheduleStaff[0]?.arrivalStatus == EmployeeAttendanceStatus.EXPECTED
 		) {
-			const arrivalTime = new Date(arrivalQuery.scheduleStaff[0].schedule.arrivalDate + ' ' + arrivalQuery.scheduleStaff[0].schedule.arrivalTime);
+			const arrivalTime = new Date(
+				arrivalQuery.scheduleStaff[0].schedule.arrivalDate +
+					" " +
+					arrivalQuery.scheduleStaff[0].schedule.arrivalTime,
+			);
 
 			if (new Date(arrivalTime.getTime() + 60 * 60 * 1000) < dto.date) {
 				arrivalQuery.scheduleStaff[0].arrivalStatus = EmployeeAttendanceStatus.LATE;
@@ -210,5 +220,63 @@ export class TrainScheduleService extends BaseService<
 		}
 
 		return null;
+	}
+
+	async staffSchaduleUpdate(id: number, dto: TrainShceduleStaffUpdateDto) {
+		const scheduleStaff = await this.trainScheduleStaffRepo.findOne({ where: { id } });
+		if (!scheduleStaff) {
+			throw new HttpException(errorPrompt.notFound, 404);
+		}
+
+		scheduleStaff.departureStatus = dto.departureStatus || scheduleStaff.departureStatus;
+		scheduleStaff.departureTime = dto.departureTime || scheduleStaff.departureTime;
+		scheduleStaff.arrivalStatus = dto.arrivalStatus || scheduleStaff.arrivalStatus;
+		scheduleStaff.arrivalTime = dto.arrivalTime || scheduleStaff.arrivalTime;
+
+		return await this.trainScheduleStaffRepo.save(scheduleStaff);
+	}
+
+	async getAbsentStaffSchedule() {
+		const query = await this.repo.query(`
+			SELECT 
+				sch.id,
+				sch."trainNumber",
+				sch."departureDate",
+				sch."departureTime",
+				sch."arrivalDate",
+				sch."arrivalTime",
+				sch."departureStationId",
+				sch."arrivalStationId",
+				sch."isActive",
+				sch."isDeleted",
+				sch."createdAt",
+				sch."updatedAt",
+				"departureStation"."name" as "departureStationName",
+				"arrivalStation"."name" as "arrivalStationName"
+			FROM 
+				"train-schedules" sch
+			LEFT JOIN 
+				"train_schedule_staff" staff
+			ON 
+				sch.id = staff.schedule_id
+			LEFT JOIN 
+				"stations" "departureStation"
+			ON 
+				sch."departureStationId" = "departureStation".id
+			LEFT JOIN 
+				"stations" "arrivalStation"
+			ON 
+				sch."arrivalStationId" = "arrivalStation".id
+			WHERE 
+				CONCAT(sch."departureDate", ' ', sch."departureTime")::timestamp < NOW()
+			AND 
+				staff."departureStatus" in ('absent', 'late', 'expected') 
+			OR
+				CONCAT(sch."arrivalDate", ' ', sch."arrivalTime")::timestamp < NOW()
+			AND
+				staff."arrivalStatus" in ('absent', 'late', 'expected')
+			`);
+
+		return query;
 	}
 }
