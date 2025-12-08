@@ -184,8 +184,13 @@ export class TrainScheduleService extends BaseService<
 			departureQuery &&
 			departureQuery?.scheduleStaff[0]?.departureStatus == EmployeeAttendanceStatus.EXPECTED
 		) {
+			const departureTime = new Date(departureQuery.scheduleStaff[0].schedule.departureDate + ' ' + departureQuery.scheduleStaff[0].schedule.departureTime);
+			if (departureTime > dto.date) {
+				departureQuery.scheduleStaff[0].departureStatus = EmployeeAttendanceStatus.ARRIVED;
+			} else {
+				departureQuery.scheduleStaff[0].departureStatus = EmployeeAttendanceStatus.LATE;
+			}
 			departureQuery.scheduleStaff[0].departureTime = dto.date;
-			departureQuery.scheduleStaff[0].departureStatus = EmployeeAttendanceStatus.ARRIVED;
 			return await this.trainScheduleStaffRepo.save(departureQuery.scheduleStaff[0]);
 		}
 
@@ -193,8 +198,14 @@ export class TrainScheduleService extends BaseService<
 			arrivalQuery &&
 			arrivalQuery?.scheduleStaff[0]?.arrivalStatus == EmployeeAttendanceStatus.EXPECTED
 		) {
+			const arrivalTime = new Date(arrivalQuery.scheduleStaff[0].schedule.arrivalDate + ' ' + arrivalQuery.scheduleStaff[0].schedule.arrivalTime);
+
+			if (new Date(arrivalTime.getTime() + 60 * 60 * 1000) < dto.date) {
+				arrivalQuery.scheduleStaff[0].arrivalStatus = EmployeeAttendanceStatus.LATE;
+			} else {
+				arrivalQuery.scheduleStaff[0].arrivalStatus = EmployeeAttendanceStatus.LEFT;
+			}
 			arrivalQuery.scheduleStaff[0].arrivalTime = dto.date;
-			arrivalQuery.scheduleStaff[0].arrivalStatus = EmployeeAttendanceStatus.LEFT;
 			return await this.trainScheduleStaffRepo.save(arrivalQuery.scheduleStaff[0]);
 		}
 
