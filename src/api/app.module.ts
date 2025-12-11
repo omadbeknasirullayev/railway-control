@@ -11,6 +11,7 @@ import { TrainScheduleModule } from './train-schedule/train-schedule.module';
 import { FaceLogModule } from './face-log/face-log.module';
 import { CameraDeviceModule } from './camera-device/camera-device.module';
 import { DataModule } from './data/data.module';
+import { AdminModule } from './admin/admin.module';
 
 
 @Module({
@@ -30,6 +31,7 @@ import { DataModule } from './data/data.module';
 		FaceLogModule,
 		CameraDeviceModule,
 		DataModule,
+		AdminModule,
 	],
 })
 export class AppModule implements NestModule {

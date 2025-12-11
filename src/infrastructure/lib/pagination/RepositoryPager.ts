@@ -11,13 +11,11 @@ export class RepositoryPager {
 		repository: Repository<T>,
 		options?: IFindOptions<T>,
 	): Promise<IResponsePagination<T>> {
-		console.log(345678, options);
-		
+
 		const [data, count] = await repository.findAndCount(
 			RepositoryPager.normalizePagination(options),
 		);
-		console.log(data, count);
-		
+
 		return Pager.of(
 			data,
 			count,

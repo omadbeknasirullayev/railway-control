@@ -5,10 +5,11 @@ import { JwtToken } from "src/infrastructure/lib/jwt-token";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./user/AuthStrategy";
+import { Admin } from "src/common/database/enity";
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([]),
+		TypeOrmModule.forFeature([Admin]),
 		JwtModule,
 	],
 	controllers: [AuthController],

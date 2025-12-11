@@ -2533,6 +2533,7 @@ export const ERROR_PROMPT_MAP = {
 			],
 		},
 	},
+
 	application: {
 		invalid_phone_number: {
 			id: 9998,
@@ -2805,6 +2806,13 @@ export const errorPrompt = {
 			ru: "Ошибка авторизации!",
 		},
 	},
+	notPermissionError: {
+		status: "FORBIDDEN",
+		message: {
+			uz: "Ruxsat yo'q!",
+			ru: "Доступ запрещён!",
+		},
+	},
 	notFound: {
 		status: "NOT FOUND",
 		message: {
@@ -2823,8 +2831,8 @@ export const errorPrompt = {
 		status: "CONFLICT",
 		message: {
 			uz: "Qabul qilish statusi allaqachon mavjud!",
-			ru: "Статус принятия уже существует!"
-		}
+			ru: "Статус принятия уже существует!",
+		},
 	},
 	invalidToken: {
 		status: "BADREQUEST",
@@ -2837,22 +2845,22 @@ export const errorPrompt = {
 		status: "CONFLICT",
 		message: {
 			uz: "Sertifikat allaqachon mavjud!",
-			ru: "Сертификат уже существует!"
-		}
+			ru: "Сертификат уже существует!",
+		},
 	},
 
 	diagnosisNotCreated: {
 		status: "BAD_REQUEST",
 		message: {
 			uz: "Diagnos yaratilmagan!",
-			ru: "Диагноз не создан!"
-		}
+			ru: "Диагноз не создан!",
+		},
 	},
 	employeeNotFound: {
 		status: "NOT_FOUND",
 		message: {
 			uz: "Xodimlar topilmadi!",
-			ru: "Сотрудники не найдены!"
-		}
+			ru: "Сотрудники не найдены!",
+		},
 	},
 };

@@ -14,7 +14,7 @@ export interface IResponse<T> {
 }
 
 export interface AuthPayload {
-	id: string;
+	id: number;
 	role: RolesEnum;
 	phoneNumber: string;
 }

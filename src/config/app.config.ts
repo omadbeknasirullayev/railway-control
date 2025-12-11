@@ -11,6 +11,8 @@ export type AppConfigType = {
 	OPERATION_LOGS_PATH: string;
 	FILE_SIZE: number;
 	PATH_FOR_FILE_UPLOAD: string;
+	TOKEN_KEY: string;
+	TOKEN_EXPIRE: number;
 };
 
 const requiredVariables = [
@@ -22,6 +24,8 @@ const requiredVariables = [
 	"OPERATION_LOGS_PATH",
 	"FILE_SIZE",
 	"PATH_FOR_FILE_UPLOAD",
+	"TOKEN_KEY",
+	"TOKEN_EXPIRE",
 ];
 
 const missingVariables = requiredVariables.filter((variable) => {
@@ -45,4 +49,6 @@ export const appConfig: AppConfigType = {
 	OPERATION_LOGS_PATH: process.env.OPERATION_LOGS_PATH as string,
 	FILE_SIZE: parseInt(process.env.FILE_SIZE as string, 10),
 	PATH_FOR_FILE_UPLOAD: process.env.PATH_FOR_FILE_UPLOAD as string,
+	TOKEN_KEY: process.env.TOKEN_KEY as string,
+	TOKEN_EXPIRE: parseInt(process.env.TOKEN_EXPIRE as string, 10),
 };

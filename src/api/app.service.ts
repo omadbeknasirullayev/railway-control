@@ -1,4 +1,4 @@
-import { HttpStatus, ValidationPipe } from "@nestjs/common";
+import { BadRequestException, HttpStatus, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import * as express from "express";
 import morgan from "morgan";
@@ -9,6 +9,7 @@ import { logger } from "../infrastructure/lib/logger";
 import { AppModule } from "./app.module";
 import { TransformInterceptor } from "../common/interceptor/transform.interceptor";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import cookieParser from 'cookie-parser';
 
 export default class Application {
 	public static async main(): Promise<void> {
@@ -27,6 +28,8 @@ export default class Application {
 				errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
 			}),
 		);
+
+		app.use(cookieParser());
 
 		app.useGlobalInterceptors(new TransformInterceptor());
 

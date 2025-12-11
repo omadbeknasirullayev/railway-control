@@ -10,30 +10,30 @@ export class JwtToken {
 	public async generateToken(
 		user: any,
 		role: RolesEnum
-	): Promise<{ access_token: string; refresh_token: string }> {
+	): Promise<string> {
 		const payload = {
 			id: user.id,
 			role: role
 		};
 
-		const [access_token, refresh_token] = await Promise.all([
-			this.jwt.signAsync(payload, {
-				// secret: appConfig.ACCESS_SECRET_KEY,
-				// expiresIn: appConfig.ACCESS_SECRET_TIME
-			}),
+		// const [access_token, refresh_token] = await Promise.all([
+		// 	this.jwt.signAsync(payload, {
+		// 		// secret: appConfig.ACCESS_SECRET_KEY,
+		// 		// expiresIn: appConfig.ACCESS_SECRET_TIME
+		// 	}),
 
-			this.jwt.signAsync(payload, {
-				// secret: appConfig.REFRESH_SECRET_KEY,
-				// expiresIn: appConfig.REFRESH_SECRET_TIME,
-			}),
-		]);
+		// 	this.jwt.signAsync(payload, {
+		// 		// secret: appConfig.REFRESH_SECRET_KEY,
+		// 		// expiresIn: appConfig.REFRESH_SECRET_TIME,
+		// 	}),
+		// ]);
 
-		// const token = await this.jwt.signAsync(payload, {
-		//   secret: config.ACCESS_SECRET_KEY,
-		//   expiresIn: config.ACCESS_SECRET_TIME,
-		// });
+		const token = await this.jwt.signAsync(payload, {
+		  secret: appConfig.TOKEN_KEY,
+		  expiresIn: appConfig.TOKEN_EXPIRE,
+		});
 
-		return { access_token, refresh_token };
+		return token;
 	}
 
 	public async verifyAccess(token: string) {
